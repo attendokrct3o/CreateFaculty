@@ -13,6 +13,13 @@
       <header class="brand">Attendo</header>
       <h1>Finishing your account</h1>
       <p class="muted" id="status">Checking your invitation…</p>
+      <div id="error-panel" class="hidden">
+        <p class="muted" id="error-text">The link seems invalid or expired.</p>
+        <div class="gap" style="height:8px"></div>
+        <label class="label">Send a new link to your email</label>
+        <input id="recovery-email" class="input" type="email" placeholder="you@example.com" />
+        <button id="send-recovery" class="btn">Send new link</button>
+      </div>
       <div id="password-panel" class="hidden">
         <label class="label">Set a new password</label>
         <input id="password" class="input" type="password" placeholder="Enter a strong password" />
@@ -58,11 +65,24 @@
     const btnSetPassword = document.getElementById('set-password');
     const inpPassword = document.getElementById('password');
     const goDash = document.getElementById('go-dashboard');
+    const errorPanel = document.getElementById('error-panel');
+    const errorText = document.getElementById('error-text');
+    const recoveryEmail = document.getElementById('recovery-email');
+    const sendRecovery = document.getElementById('send-recovery');
 
     const DASHBOARD_URL = 'https://attendo6.netlify.app/'; // adjust if your dashboard lives elsewhere
 
     async function finalizeSession() {
       try {
+        // If Supabase returned an error via hash, show recovery UI
+        const err = hash.get('error');
+        const codeName = hash.get('error_code');
+        const desc = hash.get('error_description');
+        if (err) {
+          errorPanel.classList.remove('hidden');
+          errorText.textContent = (desc || err).replaceAll('+',' ');
+          // We still continue to check for tokens in case the link carried them
+        }
         // New (code) flow
         const code = qs.get('code');
         if (code) {
@@ -119,6 +139,16 @@
       if (error) { alert(error.message); statusEl.textContent = 'Error creating account'; return; }
       statusEl.textContent = 'Account is ready.';
       continuePanel.classList.remove('hidden');
+    });
+
+    sendRecovery.addEventListener('click', async () => {
+      const email = (recoveryEmail.value || '').trim();
+      if (!email) { alert('Enter your email'); return; }
+      statusEl.textContent = 'Sending a new link…';
+      const redirectTo = window.location.origin + window.location.pathname; // come back here
+      const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) { alert(error.message); statusEl.textContent = 'Could not send the link'; return; }
+      statusEl.textContent = 'A new link has been sent if the email exists.';
     });
 
     goDash.addEventListener('click', (e) => {
