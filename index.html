@@ -70,7 +70,8 @@
     const recoveryEmail = document.getElementById('recovery-email');
     const sendRecovery = document.getElementById('send-recovery');
 
-    const DASHBOARD_URL = 'https://attendo6.netlify.app/'; // adjust if your dashboard lives elsewhere
+  const DASHBOARD_URL = 'https://attendo6.netlify.app/'; // adjust if your dashboard lives elsewhere
+  let sessionReady = false;
 
     async function finalizeSession() {
       try {
@@ -88,7 +89,7 @@
         if (code) {
           const { error } = await client.auth.exchangeCodeForSession(code);
           if (error) throw error;
-          return true;
+          sessionReady = true; return true;
         }
         // Hash token flow
         const access_token = hash.get('access_token');
@@ -96,11 +97,11 @@
         if (access_token && refresh_token) {
           const { error } = await client.auth.setSession({ access_token, refresh_token });
           if (error) throw error;
-          return true;
+          sessionReady = true; return true;
         }
         // Check existing session
         const { data } = await client.auth.getSession();
-        return !!data.session;
+        sessionReady = !!data.session; return sessionReady;
       } catch (e) {
         console.error(e);
         statusEl.textContent = e.message || 'Could not complete sign-in';
@@ -121,6 +122,7 @@
     }
 
     btnSetPassword.addEventListener('click', async () => {
+      if (!sessionReady) { await finalizeSession(); }
       const pwd = inpPassword.value.trim();
       if (pwd.length < 8) { alert('Use at least 8 characters.'); return; }
       statusEl.textContent = 'Saving password…';
@@ -131,13 +133,27 @@
     });
 
     btnCreate.addEventListener('click', async () => {
+      if (!sessionReady) {
+        const ok = await finalizeSession();
+        if (!ok) { alert('Your session is not ready. Please open the invite link again.'); return; }
+      }
       const fullName = inpFullName.value.trim();
       const dept = inpDepartment.value.trim();
       if (!fullName || !dept) { alert('Please enter full name and department'); return; }
       statusEl.textContent = 'Creating your account…';
+      const { data: userData, error: userErr } = await client.auth.getUser();
+      if (userErr || !userData?.user) { alert('No active session. Open the invite link again.'); return; }
       const { error } = await client.rpc('faculty_self_register', { p_full_name: fullName, p_department: dept });
-      if (error) { alert(error.message); statusEl.textContent = 'Error creating account'; return; }
-      statusEl.textContent = 'Account is ready.';
+      if (error) { console.error('RPC error', error); alert(error.message || 'Failed to create account'); statusEl.textContent = 'Error creating account'; return; }
+      // Verify row exists (best-effort; may be blocked by RLS policies)
+      try {
+        const { data: check } = await client.from('faculty').select('user_id').eq('user_id', userData.user.id).maybeSingle();
+        if (check?.user_id) {
+          statusEl.textContent = 'Account is ready.';
+        } else {
+          statusEl.textContent = 'Account created. If you do not see access, please contact admin.';
+        }
+      } catch { statusEl.textContent = 'Account is ready.'; }
       continuePanel.classList.remove('hidden');
     });
 
