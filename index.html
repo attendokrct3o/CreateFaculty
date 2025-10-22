@@ -49,7 +49,7 @@
 
   <script>
     const SUPABASE_URL = "https://gczoakupibhzaeplstzh.supabase.co";
-    const SUPABASE_ANON_KEY = "77e109c332d0905a93436f206f9fb97fdf22f871b574d01bd90f84a7df01b1ac";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdjem9ha3VwaWJoemFlcGxzdHpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzMzg2MjksImV4cCI6MjA3NTkxNDYyOX0.h7QgriGMdnahI-g5mz7xCOkjCSGCN9QV5HR7bKtEXCA";
     const effectiveAnon = SUPABASE_ANON_KEY.includes('VITE_SUPABASE_ANON_KEY') ? '' : SUPABASE_ANON_KEY;
     const client = window.supabase.createClient(SUPABASE_URL, effectiveAnon || undefined);
 
