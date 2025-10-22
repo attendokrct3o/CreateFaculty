@@ -56,6 +56,15 @@
     const qs = new URLSearchParams(window.location.search);
     const hash = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
 
+    function parseJwt(token) {
+      try {
+        const base = token.split('.')[1];
+        const norm = base.replace(/-/g, '+').replace(/_/g, '/');
+        const json = decodeURIComponent(atob(norm).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+        return JSON.parse(json);
+      } catch { return null; }
+    }
+
     const statusEl = document.getElementById('status');
     const passwordPanel = document.getElementById('password-panel');
   const continuePanel = document.getElementById('continue-panel');
@@ -118,8 +127,15 @@
         const access_token = hash.get('access_token');
         const refresh_token = hash.get('refresh_token');
         if (access_token && refresh_token) {
+          // Show token issuer/audience for mismatch debugging
+          const payload = parseJwt(access_token);
+          const iss = payload?.iss || payload?.iss_url || null;
+          const aud = payload?.aud || null;
+          if (iss) {
+            updateDiag({ note: `Token iss: ${iss}, aud: ${aud || 'n/a'}` });
+          }
           const { error } = await client.auth.setSession({ access_token, refresh_token });
-          if (error) throw error;
+          if (error) { updateDiag({ error }); throw error; }
           sessionReady = true; return true;
         }
         const { data } = await client.auth.getSession();
@@ -127,6 +143,7 @@
       } catch (e) {
         console.error(e);
         statusEl.textContent = e.message || 'Could not complete sign-in';
+        updateDiag({ error: e?.message || String(e) });
         return false;
       }
     }
@@ -140,7 +157,10 @@
     }
 
     btnSetPassword.addEventListener('click', async () => {
-      if (!sessionReady) { await finalizeSession(); }
+      if (!sessionReady) {
+        const ok = await finalizeSession();
+        if (!ok) { alert('Your session is not ready. Please open the invite link again.'); return; }
+      }
       const pwd = inpPassword.value.trim();
       if (pwd.length < 8) { alert('Use at least 8 characters.'); return; }
       statusEl.textContent = 'Saving password…';
