@@ -11,8 +11,8 @@
   <main class="wrap">
     <section class="card">
       <header class="brand">Attendo</header>
-      <h1>Finishing your account</h1>
-      <p class="muted" id="status">Checking your invitation…</p>
+  <h1>Finishing your account</h1>
+  <p class="muted hidden" id="status">Checking your invitation…</p>
       <div id="error-panel" class="hidden">
         <p class="muted" id="error-text">The link seems invalid or expired.</p>
         <div class="gap" style="height:8px"></div>
@@ -20,12 +20,12 @@
         <input id="recovery-email" class="input" type="email" placeholder="you@example.com" />
         <button id="send-recovery" class="btn">Send new link</button>
       </div>
-      <div id="password-panel" class="hidden">
+      <div id="password-panel">
         <label class="label">Set a new password</label>
         <input id="password" class="input" type="password" placeholder="Enter a strong password" />
         <button id="set-password" class="btn">Save password</button>
       </div>
-      <div id="profile-panel" class="hidden">
+      <div id="profile-panel">
         <label class="label">Full name</label>
         <input id="full-name" class="input" type="text" placeholder="Your full name" />
         <label class="label">Department</label>
